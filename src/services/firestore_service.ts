@@ -291,4 +291,48 @@ export const FirestoreService = {
       throw new Error("Failed to fetch user");
     }
   },
+
+  // ===== BONUS: UPDATE COURSE =====
+  async updateCourse(courseId: string, updates: Partial<Course>): Promise<void> {
+    try {
+      const courseRef = doc(db, "courses", courseId);
+      await updateDoc(courseRef, {
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error updating course:", error);
+      throw error;
+    }
+  },
+
+  // ===== BONUS: DELETE COURSE =====
+  async deleteCourse(courseId: string): Promise<void> {
+    try {
+      // Delete the course document
+      const courseRef = doc(db, "courses", courseId);
+      
+      // Delete all attendance sessions for this course
+      const sessionsQuery: Query = query(
+        collection(db, "attendance_sessions"),
+        where("courseId", "==", courseId)
+      );
+      const sessionsSnap = await getDocs(sessionsQuery);
+      
+      const batch = writeBatch(db);
+      
+      // Add all sessions to batch delete
+      sessionsSnap.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      
+      // Delete the course
+      batch.delete(courseRef);
+      
+      await batch.commit();
+    } catch (error) {
+      console.error("Error deleting course:", error);
+      throw error;
+    }
+  },
 };
