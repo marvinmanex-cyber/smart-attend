@@ -38,20 +38,20 @@ export default function CourseDetailPage() {
 
   const fetchCourse = async () => {
     try {
-      if (!user?.uid) return;
+      if (!user?.uid) {
+        console.log('User UID not available yet');
+        return;
+      }
+      
+      console.log('Fetching course:', courseId, 'for lecturer:', user.uid);
       
       // Fetch course directly by ID
       const foundCourse = await FirestoreService.getCourseById(courseId);
       
-      if (!foundCourse) {
-        setError('Course not found');
-        setLoading(false);
-        return;
-      }
+      console.log('Found course:', foundCourse);
       
-      // Verify this course belongs to the logged-in lecturer
-      if (foundCourse.lecturerId !== user.uid) {
-        setError('You do not have permission to access this course');
+      if (!foundCourse) {
+        setError('Course not found in database. Check Firestore security rules.');
         setLoading(false);
         return;
       }
@@ -61,8 +61,9 @@ export default function CourseDetailPage() {
       setEditDescription(foundCourse.description);
       setLoading(false);
     } catch (err) {
-      const error = err as Error;
-      setError(error.message);
+      console.error('Error fetching course:', err);
+      const error = err as any;
+      setError(error.message || error.code || 'Failed to fetch course - check Firestore rules');
       setLoading(false);
     }
   };
