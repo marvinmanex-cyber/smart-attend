@@ -31,21 +31,37 @@ export default function CourseDetailPage() {
     console.log('Fetching course:', courseId);
     console.log('Auth status:', status);
     console.log('User:', user?.uid);
-    const foundCourse = await FirestoreService.getCourseById(courseId);
-    console.log('Found course:', foundCourse);
+    
+    // Try direct fetch first
+    let foundCourse = await FirestoreService.getCourseById(courseId);
+    console.log('Found course (direct fetch):', foundCourse);
+    
+    // If not found, try fetching from lecturer's courses as fallback
+    if (!foundCourse && user?.uid) {
+      console.log('Course not found via direct fetch, checking lecturer courses...');
+      const lecturerCourses = await FirestoreService.getCoursesByLecturer(user.uid);
+      foundCourse = lecturerCourses.find(c => c.id === courseId) || null;
+      console.log('Found course (from lecturer courses):', foundCourse);
+    }
+    
     if (!foundCourse) {
-      setError('Course not found');
+      setError('Course not found. You may not have permission to access this course.');
     } else {
-      setCourse(foundCourse);
+      // Check if current user is the course lecturer
+      if (foundCourse.lecturerId !== user?.uid) {
+        setError('You do not have permission to access this course.');
+      } else {
+        setCourse(foundCourse);
+      }
     }
   } catch (err) {
     const error = err as Error;
-    console.error('Error:', error.message);
-    setError(error.message);
+    console.error('Error fetching course:', error.message);
+    setError(error.message || 'Failed to load course');
   } finally {
     setLoading(false);
   }
-}, [courseId]);
+}, [courseId, user?.uid]);
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
