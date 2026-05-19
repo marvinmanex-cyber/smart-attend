@@ -270,4 +270,25 @@ export const FirestoreService = {
       throw error;
     }
   },
+
+  // ===== BONUS: GET USER BY MATRIC NUMBER =====
+  async getUserByMatricNumber(matricNumber: string): Promise<UserModel | null> {
+    try {
+      const q: Query = query(
+        collection(db, "users"),
+        where("matricNumber", "==", matricNumber)
+      );
+
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        return null;
+      }
+
+      return querySnapshot.docs[0].data() as UserModel;
+    } catch (error) {
+      console.error("Error fetching user by matric number:", error);
+      throw new Error("Failed to fetch user");
+    }
+  },
 };

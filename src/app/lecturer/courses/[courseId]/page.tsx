@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { FirestoreService } from '@/services/firestore_service';
-import { Course, UserModel } from '@/types';
-import { Loader, Users, QrCode, ArrowLeft, X } from 'lucide-react';
+import { Course } from '@/types';
+import { Loader, Users, QrCode, ArrowLeft, UserPlus, X, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CourseDetailPage() {
@@ -18,38 +18,84 @@ export default function CourseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Enrollment state
+  const [showEnrollModal, setShowEnrollModal] = useState(false);
+  const [matricNumber, setMatricNumber] = useState('');
+  const [enrolling, setEnrolling] = useState(false);
+  const [enrollError, setEnrollError] = useState('');
+  const [enrollSuccess, setEnrollSuccess] = useState('');
+
+  const fetchCourse = async () => {
+    try {
+      if (!user?.uid) return;
+      const courses = await FirestoreService.getCoursesByLecturer(user.uid);
+      const foundCourse = courses.find((c) => c.id === courseId);
+      if (!foundCourse) {
+        setError('Course not found');
+      } else {
+        setCourse(foundCourse);
+      }
+    } catch (err) {
+      const error = err as Error;
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
       return;
     }
-
-    const fetchCourse = async () => {
-      try {
-        // In a real app, you'd fetch the course by ID
-        // For now, we'll fetch all courses and find the matching one
-        if (!user?.uid) return;
-
-        const courses = await FirestoreService.getCoursesByLecturer(user.uid);
-        const foundCourse = courses.find((c) => c.id === courseId);
-
-        if (!foundCourse) {
-          setError('Course not found');
-        } else {
-          setCourse(foundCourse);
-        }
-      } catch (err) {
-        const error = err as Error;
-        setError(error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (user?.uid) {
       fetchCourse();
     }
   }, [user, status, router, courseId]);
+
+  const handleEnrollStudent = async () => {
+    if (!matricNumber.trim()) return;
+    setEnrolling(true);
+    setEnrollError('');
+    setEnrollSuccess('');
+
+    try {
+      // Find student by matric number
+      const student = await FirestoreService.getUserByMatricNumber(matricNumber.trim());
+
+      if (!student) {
+        setEnrollError('No student found with that matric number. Make sure they have registered first.');
+        setEnrolling(false);
+        return;
+      }
+
+      if (student.role !== 'student') {
+        setEnrollError('This user is not registered as a student.');
+        setEnrolling(false);
+        return;
+      }
+
+      if (course?.students.includes(student.uid)) {
+        setEnrollError('This student is already enrolled in this course.');
+        setEnrolling(false);
+        return;
+      }
+
+      // Enroll the student
+      await FirestoreService.enrollStudentInCourse(courseId, student.uid);
+
+      setEnrollSuccess(`${student.name} has been enrolled successfully!`);
+      setMatricNumber('');
+
+      // Refresh course data
+      await fetchCourse();
+    } catch (err) {
+      const error = err as Error;
+      setEnrollError(error.message || 'Failed to enroll student.');
+    } finally {
+      setEnrolling(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -110,13 +156,11 @@ export default function CourseDetailPage() {
 
         {/* Course Details */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          {/* Description */}
           <div className="md:col-span-2 bg-slate-800 border-2 border-amber-400/30 rounded-lg p-6">
             <h2 className="text-lg font-bold text-amber-400 mb-3">Description</h2>
             <p className="text-amber-100/80">{course.description}</p>
           </div>
 
-          {/* Stats */}
           <div className="bg-slate-800 border-2 border-amber-400/30 rounded-lg p-6">
             <h2 className="text-lg font-bold text-amber-400 mb-4">Course Stats</h2>
             <div className="space-y-3">
@@ -126,7 +170,9 @@ export default function CourseDetailPage() {
               </div>
               <div className="pt-3 border-t border-amber-400/20">
                 <p className="text-amber-100/70 text-sm">Created</p>
-                <p className="text-sm text-amber-100/80">{new Date(course.createdAt).toLocaleDateString()}</p>
+                <p className="text-sm text-amber-100/80">
+                  {new Date(course.createdAt).toLocaleDateString()}
+                </p>
               </div>
             </div>
           </div>
@@ -134,14 +180,33 @@ export default function CourseDetailPage() {
 
         {/* Enrolled Students */}
         <div className="bg-slate-800 border-2 border-amber-400/30 rounded-lg overflow-hidden">
-          <div className="p-6 border-b border-amber-400/20">
-            <h2 className="text-lg font-bold text-amber-400">Enrolled Students ({course.students.length})</h2>
+          <div className="p-6 border-b border-amber-400/20 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-amber-400">
+              Enrolled Students ({course.students.length})
+            </h2>
+            <button
+              onClick={() => {
+                setShowEnrollModal(true);
+                setEnrollError('');
+                setEnrollSuccess('');
+              }}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-900 px-4 py-2 rounded-lg font-bold transition flex items-center space-x-2 text-sm"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Enroll Student</span>
+            </button>
           </div>
 
           {course.students.length === 0 ? (
             <div className="p-12 text-center">
               <Users className="w-12 h-12 text-amber-400/30 mx-auto mb-3" />
-              <p className="text-amber-100/50">No students enrolled yet</p>
+              <p className="text-amber-100/50 mb-4">No students enrolled yet</p>
+              <button
+                onClick={() => setShowEnrollModal(true)}
+                className="bg-amber-500 hover:bg-amber-400 text-slate-900 px-4 py-2 rounded-lg font-bold transition text-sm"
+              >
+                Enroll First Student
+              </button>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -154,7 +219,10 @@ export default function CourseDetailPage() {
                 </thead>
                 <tbody>
                   {course.students.map((studentId, idx) => (
-                    <tr key={studentId} className="border-b border-amber-400/10 hover:bg-amber-400/5 transition">
+                    <tr
+                      key={studentId}
+                      className="border-b border-amber-400/10 hover:bg-amber-400/5 transition"
+                    >
                       <td className="px-6 py-3 text-amber-100">{idx + 1}</td>
                       <td className="px-6 py-3 text-amber-100/70 font-mono text-xs">{studentId}</td>
                     </tr>
@@ -165,6 +233,65 @@ export default function CourseDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Enroll Student Modal */}
+      {showEnrollModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 border-2 border-amber-400/30 rounded-xl p-8 w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-amber-400">Enroll a Student</h3>
+              <button
+                onClick={() => setShowEnrollModal(false)}
+                className="text-amber-100/50 hover:text-amber-100 transition"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <p className="text-amber-100/70 text-sm mb-6">
+              Enter the student's matric number. They must have already registered on SmartAttend.
+            </p>
+
+            {enrollError && (
+              <div className="bg-red-900/30 border border-red-500/50 rounded-lg p-3 mb-4">
+                <p className="text-red-300 text-sm">{enrollError}</p>
+              </div>
+            )}
+
+            {enrollSuccess && (
+              <div className="bg-green-900/30 border border-green-500/50 rounded-lg p-3 mb-4 flex items-center space-x-2">
+                <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+                <p className="text-green-300 text-sm">{enrollSuccess}</p>
+              </div>
+            )}
+
+            <input
+              type="text"
+              placeholder="Enter matric number e.g. U/2021/001"
+              value={matricNumber}
+              onChange={(e) => setMatricNumber(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg bg-slate-700 border border-amber-400/30 text-amber-100 placeholder-amber-100/30 focus:outline-none focus:border-amber-400 mb-4"
+              onKeyDown={(e) => e.key === 'Enter' && handleEnrollStudent()}
+            />
+
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowEnrollModal(false)}
+                className="flex-1 py-3 rounded-lg border border-amber-400/30 text-amber-100/70 hover:text-amber-100 transition font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEnrollStudent}
+                disabled={enrolling || !matricNumber.trim()}
+                className="flex-1 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:bg-slate-600 text-slate-900 disabled:text-slate-400 font-bold transition"
+              >
+                {enrolling ? 'Enrolling...' : 'Enroll'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
