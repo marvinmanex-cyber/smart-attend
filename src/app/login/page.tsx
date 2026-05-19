@@ -19,8 +19,6 @@ export default function LoginPage() {
 
     try {
       const user = await AuthService.signIn(email, password);
-      
-      // Route based on role (Just like your Flutter logic!)
       if (user.role === 'staff') {
         router.push('/lecturer');
       } else {
@@ -34,28 +32,28 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-screen flex items-center justify-center bg-indigo-50 px-4">
       <div className="max-w-md w-full bg-white rounded-xl shadow-xl overflow-hidden">
-        {/* Header Section */}
-        <div className="bg-primary p-8 text-center">
-          <h1 className="text-3xl font-bold text-secondary">SmartAttend</h1>
-          <p className="text-blue-100 mt-2">Sign in to your account</p>
+        <div className="bg-indigo-600 p-8 text-center">
+          <h1 className="text-3xl font-bold text-white">SmartAttend</h1>
+          <p className="text-indigo-200 mt-2">Sign in to your account</p>
         </div>
 
-        {/* Form Section */}
         <form onSubmit={handleLogin} className="p-8 space-y-6">
           {error && (
-            <div className="bg-red-50 border-l-4 border-error p-4 text-error text-sm">
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 text-red-700 text-sm rounded">
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-textDark mb-1">Email Address</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email Address
+            </label>
             <input
               type="email"
               required
-              className="w-full px-4 py-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
+              className="w-full px-4 py-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition text-gray-900 placeholder-gray-400"
               placeholder="e.g. name@university.edu"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -63,11 +61,13 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-textDark mb-1">Password</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Password
+            </label>
             <input
               type="password"
               required
-              className="w-full px-4 py-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition"
+              className="w-full px-4 py-3 rounded-md border border-gray-300 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition text-gray-900 placeholder-gray-400"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -77,17 +77,17 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full py-3 rounded-md font-bold text-primary transition ${
-              loading ? 'bg-gray-300 cursor-not-allowed' : 'bg-secondary hover:bg-yellow-500'
+            className={`w-full py-3 rounded-md font-bold text-white transition ${
+              loading ? 'bg-indigo-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'
             }`}
           >
             {loading ? 'Authenticating...' : 'LOG IN'}
           </button>
 
           <div className="text-center pt-4">
-            <p className="text-textLight text-sm">
+            <p className="text-gray-600 text-sm">
               Don't have an account?{' '}
-              <Link href="/register" className="text-primary font-bold hover:underline">
+              <Link href="/register" className="text-indigo-600 font-bold hover:underline">
                 Create Account
               </Link>
             </p>
