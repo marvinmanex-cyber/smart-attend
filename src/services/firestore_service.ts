@@ -232,6 +232,23 @@ export const FirestoreService = {
     }
   },
 
+  // ===== BONUS: GET COURSE BY ID =====
+  async getCourseById(courseId: string): Promise<Course | null> {
+    try {
+      const courseRef = doc(db, "courses", courseId);
+      const courseSnap = await getDoc(courseRef);
+
+      if (!courseSnap.exists()) {
+        return null;
+      }
+
+      return courseSnap.data() as Course;
+    } catch (error) {
+      console.error("Error fetching course by ID:", error);
+      throw error;
+    }
+  },
+
   // ===== BONUS: GET STUDENT'S ENROLLED COURSES =====
   async getStudentCourses(studentId: string): Promise<Course[]> {
     try {
