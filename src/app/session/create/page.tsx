@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import QRCode from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { useAuth } from '@/context/AuthContext';
 import { FirestoreService } from '@/services/firestore_service';
 import { Course, AttendanceSession } from '@/types';
@@ -276,7 +276,7 @@ export default function CreateSessionPage() {
 
               {/* QR Code */}
               <div className="bg-white p-6 rounded-lg flex justify-center mb-6">
-                <QRCode
+                <QRCodeCanvas
                   value={session.id}
                   size={256}
                   level="H"

@@ -35,10 +35,8 @@ export default function AttendanceHistoryPage() {
 
     const fetchAttendance = async () => {
       try {
-        // Get student's enrolled courses
         const courses = await FirestoreService.getStudentCourses(user.uid);
-        
-        // Mock attendance records (in production, you'd fetch actual attendance data)
+
         const mockRecords: AttendanceRecord[] = courses.map((course) => ({
           courseTitle: course.title,
           courseName: course.title,
@@ -86,7 +84,7 @@ export default function AttendanceHistoryPage() {
           </div>
         )}
 
-        {/* Stats Cards - Responsive Grid */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 md:gap-4 mb-6 md:mb-8">
           <div className="bg-white rounded-lg shadow p-3 md:p-6 text-center">
             <div className="text-2xl md:text-3xl font-bold text-indigo-600">{records.length}</div>
@@ -97,7 +95,9 @@ export default function AttendanceHistoryPage() {
             <p className="text-xs md:text-sm text-gray-600 mt-1">Enrollment Rate</p>
           </div>
           <div className="bg-white rounded-lg shadow p-3 md:p-6 text-center">
-            <div className="text-2xl md:text-3xl font-bold text-blue-600">{Math.ceil(records.length / 2)}</div>
+            <div className="text-2xl md:text-3xl font-bold text-blue-600">
+              {Math.ceil(records.length / 2)}
+            </div>
             <p className="text-xs md:text-sm text-gray-600 mt-1">This Month</p>
           </div>
         </div>
@@ -113,7 +113,7 @@ export default function AttendanceHistoryPage() {
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow overflow-hidden">
-            {/* Table for desktop, Cards for mobile */}
+            {/* Table for desktop */}
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
@@ -162,7 +162,8 @@ export default function AttendanceHistoryPage() {
                   </div>
                   <div className="text-xs text-gray-600 space-y-1">
                     <p>
-                      <span className="font-semibold">Date:</span> {new Date(record.markedAt).toLocaleDateString()}
+                      <span className="font-semibold">Date:</span>{' '}
+                      {new Date(record.markedAt).toLocaleDateString()}
                     </p>
                     <p>
                       <span className="font-semibold">Time:</span>{' '}
@@ -186,121 +187,6 @@ export default function AttendanceHistoryPage() {
             </p>
           </div>
         )}
-      </div>
-    </div>
-  );
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700 mb-6">
-            {error}
-          </div>
-        )}
-
-        {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Classes Attended</p>
-                <p className="text-2xl font-bold text-green-600">{records.length}</p>
-              </div>
-              <CheckCircle className="w-12 h-12 text-green-500/20" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">Enrollment Rate</p>
-                <p className="text-2xl font-bold text-blue-600">100%</p>
-              </div>
-              <Clock className="w-12 h-12 text-blue-500/20" />
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6 border-l-4 border-indigo-500">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-600 text-sm">This Month</p>
-                <p className="text-2xl font-bold text-indigo-600">
-                  {records.filter(
-                    (r) =>
-                      new Date(r.markedAt).getMonth() === new Date().getMonth()
-                  ).length}
-                </p>
-              </div>
-              <AlertCircle className="w-12 h-12 text-indigo-500/20" />
-            </div>
-          </div>
-        </div>
-
-        {/* Records Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-bold text-gray-800">Recent Attendance</h2>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-700">
-                    Course
-                  </th>
-                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-700">
-                    Date
-                  </th>
-                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-700">
-                    Time
-                  </th>
-                  <th className="text-left px-6 py-3 text-sm font-semibold text-gray-700">
-                    Status
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {records.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
-                      No attendance records yet
-                    </td>
-                  </tr>
-                ) : (
-                  records.map((record, idx) => (
-                    <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50 transition">
-                      <td className="px-6 py-4 text-gray-800 font-medium">
-                        {record.courseTitle}
-                      </td>
-                      <td className="px-6 py-4 text-gray-600">
-                        {new Date(record.markedAt).toLocaleDateString()}
-                      </td>
-                      <td className="px-6 py-4 text-gray-600">
-                        {new Date(record.markedAt).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center space-x-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                          <CheckCircle className="w-4 h-4" />
-                          <span>Marked</span>
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Info Card */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-800">
-            <span className="font-semibold">💡 Note:</span> Your attendance records are automatically
-            tracked when you scan the QR code during class sessions.
-          </p>
-        </div>
       </div>
     </div>
   );

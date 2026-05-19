@@ -31,7 +31,6 @@ export default function AttendancePage() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Fetch student's enrolled courses
         const studentCourses = await FirestoreService.getStudentCourses(user.uid);
         setCourses(studentCourses);
         setError('');
@@ -167,104 +166,6 @@ export default function AttendancePage() {
         <div className="mt-6 md:mt-8 bg-blue-50 border border-blue-200 rounded-lg p-3 md:p-4 text-xs md:text-sm">
           <p className="text-blue-800">
             <span className="font-semibold">💡 Tip:</span> Tap "Scan QR Code" to mark your attendance. You can only mark attendance while the session is active.
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-      <div className="max-w-2xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Attendance</h1>
-          <p className="text-gray-600">
-            Welcome, <span className="font-semibold">{user?.name}</span>
-          </p>
-        </div>
-
-        {/* Quick Action */}
-        <Link
-          href="/attendance/scan"
-          className="block mb-8 bg-gradient-to-r from-indigo-600 to-blue-600 rounded-xl shadow-lg hover:shadow-xl transition p-6 text-white"
-        >
-          <div className="flex items-center space-x-4">
-            <QrCode className="w-8 h-8" />
-            <div>
-              <h2 className="text-xl font-bold">Scan QR Code</h2>
-              <p className="text-indigo-100">Mark attendance for a session</p>
-            </div>
-          </div>
-        </Link>
-
-        {/* Error Message */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6 flex items-start space-x-3">
-            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
-            <p className="text-red-700">{error}</p>
-          </div>
-        )}
-
-        {/* Courses Section */}
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Your Courses</h2>
-
-          {courses.length === 0 ? (
-            <div className="bg-white rounded-lg shadow p-8 text-center">
-              <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-              <p className="text-gray-600">
-                You are not enrolled in any courses yet
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {courses.map((course) => (
-                <div
-                  key={course.id}
-                  className="bg-white rounded-lg shadow-md hover:shadow-lg transition p-6"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-baseline space-x-2 mb-1">
-                        <h3 className="text-lg font-bold text-gray-800">
-                          {course.title}
-                        </h3>
-                        <span className="text-sm font-mono text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
-                          {course.code}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-3">
-                        Lecturer:{' '}
-                        <span className="font-semibold">{course.lecturerName}</span>
-                      </p>
-                      <p className="text-sm text-gray-700 line-clamp-2">
-                        {course.description}
-                      </p>
-                      <div className="mt-3 flex items-center space-x-2 text-xs text-gray-500">
-                        <span>
-                          {course.students.length} student
-                          {course.students.length !== 1 ? 's' : ''} enrolled
-                        </span>
-                      </div>
-                    </div>
-                    <Link
-                      href="/attendance/scan"
-                      className="ml-4 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition whitespace-nowrap text-sm font-medium flex items-center space-x-2"
-                    >
-                      <QrCode className="w-4 h-4" />
-                      <span>Scan QR</span>
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Info Card */}
-        <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm text-blue-800">
-            <span className="font-semibold">💡 Tip:</span> Tap "Scan QR Code"
-            to mark your attendance. You can only mark attendance while the
-            session is active.
           </p>
         </div>
       </div>
