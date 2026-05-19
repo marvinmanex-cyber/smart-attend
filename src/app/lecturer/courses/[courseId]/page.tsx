@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { FirestoreService } from '@/services/firestore_service';
 import { Course } from '@/types';
-import { Loader, Users, QrCode, ArrowLeft, UserPlus, X, CheckCircle, Edit2, Trash2, AlertTriangle } from 'lucide-react';
+import { Loader, Users, QrCode, ArrowLeft, UserPlus, X, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CourseDetailPage() {
@@ -25,48 +25,22 @@ export default function CourseDetailPage() {
   const [enrollError, setEnrollError] = useState('');
   const [enrollSuccess, setEnrollSuccess] = useState('');
 
-  // Edit state
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editTitle, setEditTitle] = useState('');
-  const [editDescription, setEditDescription] = useState('');
-  const [editLoading, setEditLoading] = useState(false);
-  const [editError, setEditError] = useState('');
-
-  // Delete state
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-
-  const fetchCourse = async () => {
+  const fetchCourse = useCallback(async () => {
     try {
-      if (!user?.uid) {
-        console.log('User UID not available yet');
-        return;
-      }
-      
-      console.log('Fetching course:', courseId, 'for lecturer:', user.uid);
-      
-      // Fetch course directly by ID
+      setLoading(true);
       const foundCourse = await FirestoreService.getCourseById(courseId);
-      
-      console.log('Found course:', foundCourse);
-      
       if (!foundCourse) {
-        setError('Course not found in database. Check Firestore security rules.');
-        setLoading(false);
-        return;
+        setError('Course not found');
+      } else {
+        setCourse(foundCourse);
       }
-      
-      setCourse(foundCourse);
-      setEditTitle(foundCourse.title);
-      setEditDescription(foundCourse.description);
-      setLoading(false);
     } catch (err) {
-      console.error('Error fetching course:', err);
-      const error = err as any;
-      setError(error.message || error.code || 'Failed to fetch course - check Firestore rules');
+      const error = err as Error;
+      setError(error.message);
+    } finally {
       setLoading(false);
     }
-  };
+  }, [courseId]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -76,7 +50,7 @@ export default function CourseDetailPage() {
     if (user?.uid) {
       fetchCourse();
     }
-  }, [user, status, router, courseId]);
+  }, [user, status, router, fetchCourse]);
 
   const handleEnrollStudent = async () => {
     if (!matricNumber.trim()) return;
@@ -85,7 +59,6 @@ export default function CourseDetailPage() {
     setEnrollSuccess('');
 
     try {
-      // Find student by matric number
       const student = await FirestoreService.getUserByMatricNumber(matricNumber.trim());
 
       if (!student) {
@@ -106,59 +79,15 @@ export default function CourseDetailPage() {
         return;
       }
 
-      // Enroll the student
       await FirestoreService.enrollStudentInCourse(courseId, student.uid);
-
       setEnrollSuccess(`${student.name} has been enrolled successfully!`);
       setMatricNumber('');
-
-      // Refresh course data
       await fetchCourse();
     } catch (err) {
       const error = err as Error;
       setEnrollError(error.message || 'Failed to enroll student.');
     } finally {
       setEnrolling(false);
-    }
-  };
-
-  const handleEditCourse = async () => {
-    if (!editTitle.trim() || !editDescription.trim()) {
-      setEditError('Title and description are required');
-      return;
-    }
-
-    setEditLoading(true);
-    setEditError('');
-
-    try {
-      await FirestoreService.updateCourse(courseId, {
-        title: editTitle,
-        description: editDescription,
-      });
-      
-      setCourse(course ? { ...course, title: editTitle, description: editDescription } : null);
-      setShowEditModal(false);
-    } catch (err) {
-      const error = err as Error;
-      setEditError(error.message || 'Failed to update course');
-    } finally {
-      setEditLoading(false);
-    }
-  };
-
-  const handleDeleteCourse = async () => {
-    setDeleteLoading(true);
-
-    try {
-      await FirestoreService.deleteCourse(courseId);
-      router.push('/lecturer/courses');
-    } catch (err) {
-      const error = err as Error;
-      setError(error.message || 'Failed to delete course');
-      setShowDeleteModal(false);
-    } finally {
-      setDeleteLoading(false);
     }
   };
 
@@ -186,7 +115,6 @@ export default function CourseDetailPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <Link
           href="/lecturer/courses"
           className="inline-flex items-center space-x-2 text-amber-400 hover:text-amber-300 mb-8"
@@ -195,51 +123,15 @@ export default function CourseDetailPage() {
           <span>Back to Courses</span>
         </Link>
 
-        <div className="flex items-start justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-amber-400 mb-2">{course.title}</h1>
-            <p className="text-amber-100">{course.code}</p>
-          </div>
-          <div className="flex space-x-3">
-            <button
-              onClick={() => {
-                setEditTitle(course.title);
-                setEditDescription(course.description);
-                setEditError('');
-                setShowEditModal(true);
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-bold transition flex items-center space-x-2"
-            >
-              <Edit2 className="w-5 h-5" />
-              <span>Edit</span>
-            </button>
-            <button
-              onClick={() => setShowDeleteModal(true)}
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-bold transition flex items-center space-x-2"
-            >
-              <Trash2 className="w-5 h-5" />
-              <span>Delete</span>
-            </button>
-          </div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-amber-400 mb-2">{course.title}</h1>
+          <p className="text-amber-100">{course.code}</p>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <button
-            onClick={() => {
-              setShowEnrollModal(true);
-              setEnrollError('');
-              setEnrollSuccess('');
-            }}
-            className="bg-green-600 hover:bg-green-700 text-white px-6 py-4 rounded-lg font-bold transition flex items-center space-x-2 justify-center md:col-span-1 order-1 md:order-none"
-          >
-            <UserPlus className="w-5 h-5" />
-            <span>Enroll Student</span>
-          </button>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
           <Link
             href="/session/create"
-            className="bg-amber-500 hover:bg-amber-400 text-slate-900 px-6 py-4 rounded-lg font-bold transition flex items-center space-x-2 justify-center"
+            className="bg-amber-500 hover:bg-amber-400 text-slate-900 px-6 py-4 rounded-lg font-bold transition flex items-center space-x-2"
           >
             <QrCode className="w-5 h-5" />
             <span>Create Attendance Session</span>
@@ -247,14 +139,13 @@ export default function CourseDetailPage() {
 
           <Link
             href="/lecturer/reports"
-            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-4 rounded-lg font-bold transition flex items-center space-x-2 justify-center"
+            className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-4 rounded-lg font-bold transition flex items-center space-x-2"
           >
             <Users className="w-5 h-5" />
             <span>View Reports</span>
           </Link>
         </div>
 
-        {/* Course Details */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="md:col-span-2 bg-slate-800 border-2 border-amber-400/30 rounded-lg p-6">
             <h2 className="text-lg font-bold text-amber-400 mb-3">Description</h2>
@@ -284,6 +175,17 @@ export default function CourseDetailPage() {
             <h2 className="text-lg font-bold text-amber-400">
               Enrolled Students ({course.students.length})
             </h2>
+            <button
+              onClick={() => {
+                setShowEnrollModal(true);
+                setEnrollError('');
+                setEnrollSuccess('');
+              }}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-900 px-4 py-2 rounded-lg font-bold transition flex items-center space-x-2 text-sm"
+            >
+              <UserPlus className="w-4 h-4" />
+              <span>Enroll Student</span>
+            </button>
           </div>
 
           {course.students.length === 0 ? (
@@ -292,7 +194,7 @@ export default function CourseDetailPage() {
               <p className="text-amber-100/50 mb-4">No students enrolled yet</p>
               <button
                 onClick={() => setShowEnrollModal(true)}
-                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-bold transition text-sm"
+                className="bg-amber-500 hover:bg-amber-400 text-slate-900 px-4 py-2 rounded-lg font-bold transition text-sm"
               >
                 Enroll First Student
               </button>
@@ -303,15 +205,12 @@ export default function CourseDetailPage() {
                 <thead className="bg-slate-700/50 border-b border-amber-400/20">
                   <tr>
                     <th className="text-left px-6 py-3 text-amber-400 font-semibold">#</th>
-                    <th className="text-left px-6 py-3 text-amber-400 font-semibold">Student ID</th>
+                    <th className="text-left px-6 py-3 text-amber-400 font-semibold">Student UID</th>
                   </tr>
                 </thead>
                 <tbody>
                   {course.students.map((studentId, idx) => (
-                    <tr
-                      key={studentId}
-                      className="border-b border-amber-400/10 hover:bg-amber-400/5 transition"
-                    >
+                    <tr key={studentId} className="border-b border-amber-400/10 hover:bg-amber-400/5 transition">
                       <td className="px-6 py-3 text-amber-100">{idx + 1}</td>
                       <td className="px-6 py-3 text-amber-100/70 font-mono text-xs">{studentId}</td>
                     </tr>
@@ -373,110 +272,9 @@ export default function CourseDetailPage() {
               <button
                 onClick={handleEnrollStudent}
                 disabled={enrolling || !matricNumber.trim()}
-                className="flex-1 py-3 rounded-lg bg-green-600 hover:bg-green-700 disabled:bg-slate-600 text-white disabled:text-slate-400 font-bold transition"
+                className="flex-1 py-3 rounded-lg bg-amber-500 hover:bg-amber-400 disabled:bg-slate-600 text-slate-900 disabled:text-slate-400 font-bold transition"
               >
                 {enrolling ? 'Enrolling...' : 'Enroll'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Course Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 border-2 border-blue-400/30 rounded-xl p-8 w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-blue-400">Edit Course</h3>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="text-blue-100/50 hover:text-blue-100 transition"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            {editError && (
-              <div className="bg-red-900/30 border border-red-500/50 rounded-lg p-3 mb-4">
-                <p className="text-red-300 text-sm">{editError}</p>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-blue-100 text-sm font-semibold mb-2">Title</label>
-                <input
-                  type="text"
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                  className="w-full px-4 py-2 rounded-lg bg-slate-700 border border-blue-400/30 text-blue-100 focus:outline-none focus:border-blue-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-blue-100 text-sm font-semibold mb-2">Description</label>
-                <textarea
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  rows={4}
-                  className="w-full px-4 py-2 rounded-lg bg-slate-700 border border-blue-400/30 text-blue-100 focus:outline-none focus:border-blue-400"
-                />
-              </div>
-            </div>
-
-            <div className="flex space-x-3 mt-6">
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="flex-1 py-3 rounded-lg border border-blue-400/30 text-blue-100/70 hover:text-blue-100 transition font-semibold"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleEditCourse}
-                disabled={editLoading}
-                className="flex-1 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 text-white disabled:text-slate-400 font-bold transition"
-              >
-                {editLoading ? 'Saving...' : 'Save'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Delete Course Modal */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 border-2 border-red-400/30 rounded-xl p-8 w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3">
-                <AlertTriangle className="w-6 h-6 text-red-500" />
-                <h3 className="text-xl font-bold text-red-400">Delete Course</h3>
-              </div>
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="text-red-100/50 hover:text-red-100 transition"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-
-            <p className="text-red-100/70 mb-6">
-              Are you sure you want to delete <strong>{course.title}</strong>? This action cannot be undone and will also delete all associated attendance sessions.
-            </p>
-
-            <div className="flex space-x-3">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="flex-1 py-3 rounded-lg border border-red-400/30 text-red-100/70 hover:text-red-100 transition font-semibold"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteCourse}
-                disabled={deleteLoading}
-                className="flex-1 py-3 rounded-lg bg-red-600 hover:bg-red-700 disabled:bg-slate-600 text-white disabled:text-slate-400 font-bold transition"
-              >
-                {deleteLoading ? 'Deleting...' : 'Delete'}
               </button>
             </div>
           </div>
