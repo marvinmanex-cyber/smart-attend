@@ -17,3 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     </html>
   );
 }
+export const metadata = {
+  manifest: "/manifest.json",
+  themeColor: "#4338ca",
+};
