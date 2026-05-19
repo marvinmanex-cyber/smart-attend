@@ -26,22 +26,26 @@ export default function CourseDetailPage() {
   const [enrollSuccess, setEnrollSuccess] = useState('');
 
   const fetchCourse = useCallback(async () => {
-    try {
-      setLoading(true);
-      const foundCourse = await FirestoreService.getCourseById(courseId);
-      if (!foundCourse) {
-        setError('Course not found');
-      } else {
-        setCourse(foundCourse);
-      }
-    } catch (err) {
-      const error = err as Error;
-      setError(error.message);
-    } finally {
-      setLoading(false);
+  try {
+    setLoading(true);
+    console.log('Fetching course:', courseId);
+    console.log('Auth status:', status);
+    console.log('User:', user?.uid);
+    const foundCourse = await FirestoreService.getCourseById(courseId);
+    console.log('Found course:', foundCourse);
+    if (!foundCourse) {
+      setError('Course not found');
+    } else {
+      setCourse(foundCourse);
     }
-  }, [courseId]);
-
+  } catch (err) {
+    const error = err as Error;
+    console.error('Error:', error.message);
+    setError(error.message);
+  } finally {
+    setLoading(false);
+  }
+}, [courseId]);
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.push('/login');
