@@ -47,7 +47,7 @@ export default function CourseDetailPage() {
       router.push('/login');
       return;
     }
-    if (user?.uid) {
+    if (status === 'authenticated' && user?.uid) {
       fetchCourse();
     }
   }, [user, status, router, fetchCourse]);
